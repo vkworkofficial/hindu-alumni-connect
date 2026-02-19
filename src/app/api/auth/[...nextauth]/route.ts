@@ -96,7 +96,7 @@ export const authOptions: AuthOptions = {
         signIn: '/login',
         error: '/login',
     },
-    secret: process.env.NEXTAUTH_SECRET || 'hindu-alumni-secret-key-change-in-production',
+    secret: process.env.NEXTAUTH_SECRET,
 };
 
 const handler = NextAuth(authOptions);
