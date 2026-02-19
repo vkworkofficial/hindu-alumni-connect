@@ -7,14 +7,19 @@ const globalForPrisma = global as unknown as { prisma: any };
 const isBuild = process.env.NEXT_PHASE === 'phase-production-build';
 
 function createPrismaClient() {
-    // If we're in the build phase, return a proxy that mocks all Prisma methods
+    // If we're in the build phase, return a recursive proxy that mocks all Prisma methods
     if (isBuild) {
-        console.log('Build phase detected: Returning mock Prisma client');
-        return new Proxy({} as any, {
-            get: (target, prop) => {
-                return () => Promise.resolve([]);
-            }
-        });
+        console.log('Build phase detected: Returning recursive mock Prisma client');
+        const createMock = (): any => {
+            const mock: any = () => Promise.resolve([]);
+            return new Proxy(mock, {
+                get: (target, prop) => {
+                    if (prop === 'then' || prop === 'toJSON') return undefined;
+                    return createMock();
+                }
+            });
+        };
+        return createMock();
     }
 
     const dbUrl = process.env.PRISMA_DATABASE_URL || process.env.DATABASE_URL || '';
@@ -22,16 +27,19 @@ function createPrismaClient() {
 
     console.log(`Initializing Prisma Client. Accelerate: ${isAccelerate}, Using: ${dbUrl.split('@')[0]}...`);
 
-    if (isAccelerate) {
-        // For Accelerate, we pass the URL to the constructor and extend it.
-        // If the standard constructor fails, we'll try a fallback in the next iteration.
-        return new PrismaClient({
-            datasourceUrl: dbUrl,
-        }).$extends(withAccelerate());
+    try {
+        if (isAccelerate) {
+            // For Accelerate, we pass the URL to the constructor and extend it.
+            return new PrismaClient({
+                datasourceUrl: dbUrl,
+            }).$extends(withAccelerate());
+        }
+        return new PrismaClient();
+    } catch (error) {
+        console.error('Failed to initialize Prisma Client:', error);
+        // Fallback to a standard client if accelerate initialization fails
+        return new PrismaClient();
     }
-
-    // Standard connection
-    return new PrismaClient();
 }
 
 export const prisma = globalForPrisma.prisma || createPrismaClient();
