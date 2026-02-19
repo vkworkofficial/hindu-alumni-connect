@@ -29,15 +29,20 @@ function createPrismaClient() {
 
     try {
         if (isAccelerate) {
-            // For Accelerate, we pass the URL to the constructor and extend it.
+            // For Accelerate, we pass the URL via the datasources property.
+            // Bypassing type checking as any because 7.4.0 types seem to have conflicts
+            // with these properties in some configurations, even if they are supported at runtime.
             return new PrismaClient({
-                datasourceUrl: dbUrl,
-            }).$extends(withAccelerate());
+                datasources: {
+                    db: {
+                        url: dbUrl,
+                    },
+                },
+            } as any).$extends(withAccelerate());
         }
         return new PrismaClient();
     } catch (error) {
         console.error('Failed to initialize Prisma Client:', error);
-        // Fallback to a standard client if accelerate initialization fails
         return new PrismaClient();
     }
 }
