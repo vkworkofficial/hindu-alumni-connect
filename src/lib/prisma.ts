@@ -5,19 +5,7 @@ import pg from 'pg';
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
 function createPrismaClient() {
-    const directUrl = process.env.DIRECT_DATABASE_URL;
-
-    if (directUrl) {
-        // Use pg adapter for direct TCP connection (bypasses prisma dev HTTP proxy)
-        const pool = new pg.Pool({ connectionString: directUrl });
-        const adapter = new PrismaPg(pool);
-        return new PrismaClient({ adapter });
-    }
-
-    // Fallback: use accelerateUrl for production (Prisma Postgres / Accelerate)
-    return new PrismaClient({
-        accelerateUrl: process.env.DATABASE_URL!,
-    });
+    return new PrismaClient();
 }
 
 export const prisma = globalForPrisma.prisma || createPrismaClient();
