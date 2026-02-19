@@ -5,8 +5,6 @@ export const dynamic = 'force-dynamic';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 
-export const dynamic = 'force-dynamic';
-
 interface RouteParams {
     params: Promise<{ id: string }>;
 }
