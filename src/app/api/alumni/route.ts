@@ -90,6 +90,17 @@ export async function POST(request: NextRequest) {
             },
         });
 
+        // Log the action
+        await prisma.adminLog.create({
+            data: {
+                action: 'ADD_ALUMNI',
+                entity: 'Alumni',
+                entityId: alumni.id,
+                details: `Added alumni: ${alumni.name} (${alumni.course}, ${alumni.graduationYear})`,
+                adminId: session.user.id,
+            },
+        });
+
         return NextResponse.json(alumni, { status: 201 });
     } catch (error) {
         console.error('Error creating alumni:', error);

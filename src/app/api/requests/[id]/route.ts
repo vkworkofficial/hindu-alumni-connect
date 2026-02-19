@@ -32,11 +32,34 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
         const updated = await prisma.connectionRequest.update({
             where: { id },
-            data: { status },
+            data: {
+                status,
+                reviewedBy: session.user.id,
+                reviewedByName: session.user.name || session.user.email || 'Admin',
+                reviewedAt: new Date(),
+            },
             include: {
                 alumni: {
                     select: { id: true, name: true },
                 },
+            },
+        });
+
+        // Create audit log entry
+        const actionMap: Record<string, string> = {
+            APPROVED: 'APPROVE_REQUEST',
+            REJECTED: 'REJECT_REQUEST',
+            RESOLVED: 'RESOLVE_REQUEST',
+            PENDING: 'REOPEN_REQUEST',
+        };
+
+        await prisma.adminLog.create({
+            data: {
+                action: actionMap[status] || 'UPDATE_REQUEST',
+                entity: 'ConnectionRequest',
+                entityId: id,
+                details: `${status.toLowerCase()} request from ${updated.studentName} to ${updated.alumni.name}`,
+                adminId: session.user.id,
             },
         });
 
@@ -60,8 +83,24 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
         const { id } = await params;
 
+        const req = await prisma.connectionRequest.findUnique({
+            where: { id },
+            select: { studentName: true },
+        });
+
         await prisma.connectionRequest.delete({
             where: { id },
+        });
+
+        // Log the deletion
+        await prisma.adminLog.create({
+            data: {
+                action: 'DELETE_REQUEST',
+                entity: 'ConnectionRequest',
+                entityId: id,
+                details: `Deleted request from ${req?.studentName || 'unknown'}`,
+                adminId: session.user.id,
+            },
         });
 
         return NextResponse.json({ message: 'Request deleted successfully' });

@@ -53,6 +53,8 @@ model User {
   accounts      Account[]
   sessions      Session[]
   requests      ConnectionRequest[]
+  adminLogs     AdminLog[]  @relation("adminLogs")
+  comments      Comment[]   @relation("comments")
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -88,19 +90,43 @@ model Alumni {
 }
 
 model ConnectionRequest {
-  id           String          @id @default(cuid())
-  studentName  String
-  studentEmail String
-  subject      String
-  message      String
-  category     RequestCategory
-  status       RequestStatus   @default(PENDING)
-  alumniId     String
-  alumni       Alumni          @relation(fields: [alumniId], references: [id])
-  studentId    String?
-  student      User?           @relation(fields: [studentId], references: [id])
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  id             String          @id @default(cuid())
+  studentName    String
+  studentEmail   String
+  subject        String
+  message        String
+  category       RequestCategory
+  status         RequestStatus   @default(PENDING)
+  alumniId       String
+  alumni         Alumni          @relation(fields: [alumniId], references: [id])
+  studentId      String?
+  student        User?           @relation(fields: [studentId], references: [id])
+  reviewedBy     String?         // Admin user ID who reviewed
+  reviewedByName String?         // Admin name for quick display
+  reviewedAt     DateTime?       // When the review happened
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model AdminLog {
+  id        String   @id @default(cuid())
+  action    String           // e.g. "APPROVE_REQUEST", "REJECT_REQUEST", "ADD_ALUMNI"
+  entity    String           // e.g. "ConnectionRequest", "Alumni", "User"
+  entityId  String?
+  details   String?          // Human-readable description
+  adminId   String
+  admin     User     @relation("adminLogs", fields: [adminId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  entity    String           // "ConnectionRequest" or "Alumni"
+  entityId  String
+  authorId  String
+  author    User     @relation("comments", fields: [authorId], references: [id])
+  createdAt DateTime @default(now())
 }
 
 enum Role {

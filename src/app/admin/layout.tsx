@@ -11,6 +11,7 @@ import {
     Menu,
     LogOut,
     UserCog,
+    ScrollText,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ const navItems = [
     { label: "Alumni", href: "/admin/alumni", icon: Users },
     { label: "Requests", href: "/admin/requests", icon: MessageSquare },
     { label: "Users", href: "/admin/users", icon: UserCog },
+    { label: "Logs", href: "/admin/logs", icon: ScrollText },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

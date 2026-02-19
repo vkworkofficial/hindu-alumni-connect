@@ -74,6 +74,17 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             },
         });
 
+        // Log the action
+        await prisma.adminLog.create({
+            data: {
+                action: 'UPDATE_ALUMNI',
+                entity: 'Alumni',
+                entityId: id,
+                details: `Updated alumni: ${alumni.name}`,
+                adminId: session.user.id,
+            },
+        });
+
         return NextResponse.json(alumni);
     } catch (error) {
         console.error('Error updating alumni:', error);
@@ -94,6 +105,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
         const { id } = await params;
 
+        const alumni = await prisma.alumni.findUnique({ where: { id }, select: { name: true } });
+
         // Delete related connection requests first
         await prisma.connectionRequest.deleteMany({
             where: { alumniId: id },
@@ -101,6 +114,17 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
         await prisma.alumni.delete({
             where: { id },
+        });
+
+        // Log the action
+        await prisma.adminLog.create({
+            data: {
+                action: 'DELETE_ALUMNI',
+                entity: 'Alumni',
+                entityId: id,
+                details: `Deleted alumni: ${alumni?.name || 'unknown'}`,
+                adminId: session.user.id,
+            },
         });
 
         return NextResponse.json({ message: 'Alumni deleted successfully' });
