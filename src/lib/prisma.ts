@@ -5,10 +5,30 @@ import pg from 'pg';
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
 function createPrismaClient() {
-    // If DATABASE_URL is a prisma:// URL, it might need accelerateUrl
-    // If it's a postgres:// URL, standard initialization is usually fine
-    // But since the generated client expects 1 arg, we provide an empty object as a base
-    return new PrismaClient({} as any);
+    const directUrl = process.env.DIRECT_DATABASE_URL;
+    const dbUrl = process.env.DATABASE_URL;
+
+    if (directUrl) {
+        try {
+            const pool = new pg.Pool({ connectionString: directUrl });
+            const adapter = new PrismaPg(pool);
+            return new PrismaClient({ adapter });
+        } catch (e) {
+            console.error('Failed to initialize Prisma with adapter:', e);
+        }
+    }
+
+    // Default to DATABASE_URL if provided, otherwise empty config for build safety
+    const config: any = {};
+    if (dbUrl) {
+        if (dbUrl.includes('prisma://') || dbUrl.includes('prisma+postgres://')) {
+            config.accelerateUrl = dbUrl;
+        } else {
+            config.datasources = { db: { url: dbUrl } };
+        }
+    }
+
+    return new PrismaClient(config);
 }
 
 export const prisma = globalForPrisma.prisma || createPrismaClient();
