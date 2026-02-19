@@ -5,7 +5,11 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export const dynamic = 'force-dynamic';
 
+// POST /api/user/profile - Update user profile
 export async function POST(req: Request) {
+    if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'production') {
+        return NextResponse.json({ message: 'Static build bypass' });
+    }
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.email) {

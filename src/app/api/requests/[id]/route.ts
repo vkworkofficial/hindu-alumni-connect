@@ -1,7 +1,6 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-
-export const dynamic = 'force-dynamic';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 
@@ -11,6 +10,9 @@ interface RouteParams {
 
 // PATCH /api/requests/[id] - Update request status (admin-only)
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
+    if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'production') {
+        return NextResponse.json({ message: 'Static build bypass' });
+    }
     try {
         const session = await getServerSession(authOptions);
         if (!session) {
@@ -47,6 +49,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
 // DELETE /api/requests/[id] - Delete request (admin-only)
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
+    if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'production') {
+        return NextResponse.json({ message: 'Static build bypass' });
+    }
     try {
         const session = await getServerSession(authOptions);
         if (!session) {

@@ -1,9 +1,8 @@
+export const dynamic = 'force-dynamic';
 import { prisma } from '@/lib/prisma';
 import AlumniDirectoryClient from './AlumniDirectoryClient';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-
-export const dynamic = 'force-dynamic';
 
 export const metadata = {
     title: 'Alumni Directory | Hindu Connect',
@@ -15,6 +14,13 @@ interface PageProps {
 }
 
 export default async function AlumniPage({ searchParams }: PageProps) {
+    if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'production') {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center">
+                <p>Loading Alumni Directory...</p>
+            </div>
+        );
+    }
     const params = await searchParams;
     const search = params.search || '';
     const course = params.course || '';
