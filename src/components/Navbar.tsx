@@ -33,7 +33,7 @@ export default function Navbar() {
                     <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold text-sm">
                         H
                     </div>
-                    <span className="text-lg font-bold tracking-tight">Hindu Connect</span>
+                    <span className="font-bold text-xl">Hindu Connect</span>
                 </Link>
 
                 {/* Desktop Nav */}
