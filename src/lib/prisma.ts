@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { withAccelerate } from '@prisma/extension-accelerate';
 
-console.log('PRISMA_DEBUG: Library module loaded');
+console.log('PRISMA_DEBUG: Library module loaded - Deployment ID: FORCE_REFRESH_001');
 
 const globalForPrisma = global as unknown as { prisma: any };
 
