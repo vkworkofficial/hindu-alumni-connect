@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+
 import { prisma } from '@/lib/prisma';
 import AlumniDirectoryClient from './AlumniDirectoryClient';
 import Navbar from '@/components/Navbar';
@@ -14,21 +15,14 @@ interface PageProps {
 }
 
 export default async function AlumniPage({ searchParams }: PageProps) {
-    if (process.env.NEXT_PHASE === 'phase-production-build') {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center">
-                <p>Loading Alumni Directory...</p>
-            </div>
-        );
-    }
     const params = await searchParams;
     const search = params.search || '';
     const course = params.course || '';
     const domain = params.domain || '';
     const year = params.year || '';
 
-    // Build where clause
-    const where: Record<string, unknown> = {};
+    // Build the query object for Prisma
+    const where: any = {};
 
     if (search) {
         where.OR = [
@@ -37,8 +31,15 @@ export default async function AlumniPage({ searchParams }: PageProps) {
             { currentRole: { contains: search, mode: 'insensitive' } },
         ];
     }
-    if (course) where.course = { contains: course, mode: 'insensitive' };
-    if (domain) where.domain = { contains: domain, mode: 'insensitive' };
+
+    if (course && course !== 'all') {
+        where.course = { equals: course, mode: 'insensitive' };
+    }
+
+    if (domain && domain !== 'all') {
+        where.domain = { equals: domain, mode: 'insensitive' };
+    }
+
     if (year && year !== 'all') {
         const parsedYear = parseInt(year);
         if (!isNaN(parsedYear)) {
@@ -46,32 +47,35 @@ export default async function AlumniPage({ searchParams }: PageProps) {
         }
     }
 
+    // Fetch filtered alumni list
     const alumni = await prisma.alumni.findMany({
         where,
         orderBy: { name: 'asc' },
     });
 
-    // Get unique filter values
+    // Fetch metadata for filter dropdowns (to ensure they are always populated correctly)
     const allAlumni = await prisma.alumni.findMany({
         select: { course: true, domain: true, graduationYear: true },
     });
 
-    const courses = [...new Set(allAlumni.map((a: { course: string }) => a.course).filter(Boolean))];
-    const domains = [...new Set(allAlumni.map((a: { domain: string | null }) => a.domain).filter(Boolean))];
-    const years = ([...new Set(allAlumni.map((a: { graduationYear: number }) => a.graduationYear))] as number[]).sort((a, b) => b - a);
+    const courses = [...new Set(allAlumni.map((a: { course: string }) => a.course).filter(Boolean))].sort();
+    const domains = [...new Set(allAlumni.map((a: { domain: string | null }) => a.domain).filter(Boolean))].sort();
+    const years = (([...new Set(allAlumni.map((a: { graduationYear: number }) => a.graduationYear))] as number[])).sort((a, b) => b - a);
 
     return (
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col bg-background">
             <Navbar />
             <AlumniDirectoryClient
                 alumni={JSON.parse(JSON.stringify(alumni))}
                 courses={courses as string[]}
                 domains={domains as string[]}
                 years={years as number[]}
-                initialSearch={search}
-                initialCourse={course}
-                initialDomain={domain}
-                initialYear={year}
+                initialFilters={{
+                    search,
+                    course,
+                    domain,
+                    year,
+                }}
             />
             <Footer />
         </div>

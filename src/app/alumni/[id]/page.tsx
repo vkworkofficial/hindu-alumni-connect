@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import AlumniProfileClient from './AlumniProfileClient';
@@ -10,16 +11,15 @@ interface PageProps {
 }
 
 export async function generateMetadata({ params }: PageProps) {
-    if (process.env.NEXT_PHASE === 'phase-production-build') {
-        return { title: 'Alumni Profile | Hindu Connect' };
-    }
     try {
         const { id } = await params;
         const alumni = await prisma.alumni.findUnique({ where: { id } });
-        if (!alumni) return { title: 'Alumni Not Found' };
+
+        if (!alumni) return { title: 'Alumni Not Found | Hindu Connect' };
+
         return {
             title: `${alumni.name} | Hindu Connect`,
-            description: alumni.summary || `Profile of ${alumni.name}, ${alumni.currentRole} at ${alumni.company}`,
+            description: alumni.summary || `Professional profile of ${alumni.name}, ${alumni.currentRole} at ${alumni.company}.`,
         };
     } catch (e) {
         return { title: 'Alumni Profile | Hindu Connect' };
@@ -27,22 +27,20 @@ export async function generateMetadata({ params }: PageProps) {
 }
 
 export default async function AlumniProfilePage({ params }: PageProps) {
-    if (process.env.NEXT_PHASE === 'phase-production-build') {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center">
-                <p>Loading Profile...</p>
-            </div>
-        );
-    }
     const { id } = await params;
-    const alumni = await prisma.alumni.findUnique({ where: { id } });
+
+    const alumni = await prisma.alumni.findUnique({
+        where: { id }
+    });
 
     if (!alumni) notFound();
 
     return (
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col bg-background">
             <Navbar />
-            <AlumniProfileClient alumni={JSON.parse(JSON.stringify(alumni))} />
+            <main className="flex-1">
+                <AlumniProfileClient alumni={JSON.parse(JSON.stringify(alumni))} />
+            </main>
             <Footer />
         </div>
     );

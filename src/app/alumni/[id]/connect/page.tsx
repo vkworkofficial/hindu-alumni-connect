@@ -15,32 +15,37 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps) {
     const { id } = await params;
     const alumni = await prisma.alumni.findUnique({ where: { id } });
+
     if (!alumni) return { title: 'Alumni Not Found' };
+
     return {
         title: `Connect with ${alumni.name} | Hindu Connect`,
-        description: `Send a connection request to ${alumni.name}`,
+        description: `Send a professional connection request to ${alumni.name}.`,
     };
 }
 
 export default async function ConnectPage({ params }: PageProps) {
     const { id } = await params;
-    const session = await getServerSession(authOptions);
 
+    // Ensure user is authenticated before allowing connection requests
+    const session = await getServerSession(authOptions);
     if (!session) {
         redirect(`/api/auth/signin?callbackUrl=/alumni/${id}/connect`);
     }
 
     const alumni = await prisma.alumni.findUnique({
         where: { id },
-        select: { id: true, name: true, currentRole: true, company: true },
+        select: { id: true, name: true, currentRole: true, company: true, image: true },
     });
 
     if (!alumni) notFound();
 
     return (
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col bg-background">
             <Navbar />
-            <ConnectFormClient alumni={JSON.parse(JSON.stringify(alumni))} />
+            <main className="flex-1">
+                <ConnectFormClient alumni={JSON.parse(JSON.stringify(alumni))} />
+            </main>
             <Footer />
         </div>
     );

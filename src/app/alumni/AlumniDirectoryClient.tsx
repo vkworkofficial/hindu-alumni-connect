@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
     Select,
@@ -27,15 +26,12 @@ import { Search, MapPin, Briefcase, GraduationCap, X } from "lucide-react";
 interface Alumni {
     id: string;
     name: string;
-    email?: string;
     course: string;
     graduationYear: number;
     currentRole?: string;
     company?: string;
     domain?: string;
     location?: string;
-    summary?: string;
-    linkedin?: string;
     image?: string | null;
 }
 
@@ -44,10 +40,12 @@ interface Props {
     courses: string[];
     domains: string[];
     years: number[];
-    initialSearch: string;
-    initialCourse: string;
-    initialDomain: string;
-    initialYear: string;
+    initialFilters: {
+        search: string;
+        course: string;
+        domain: string;
+        year: string;
+    };
 }
 
 export default function AlumniDirectoryClient({
@@ -55,33 +53,34 @@ export default function AlumniDirectoryClient({
     courses,
     domains,
     years,
-    initialSearch,
-    initialCourse,
-    initialDomain,
-    initialYear,
+    initialFilters,
 }: Props) {
     const router = useRouter();
-    const [search, setSearch] = useState(initialSearch);
-    const [course, setCourse] = useState(initialCourse);
-    const [domain, setDomain] = useState(initialDomain);
-    const [year, setYear] = useState(initialYear);
+    const [filters, setFilters] = useState(initialFilters);
 
-    const applyFilters = () => {
+    const updateFilter = useCallback((field: string, value: string) => {
+        setFilters((prev) => ({ ...prev, [field]: value }));
+    }, []);
+
+    const applyFilters = useCallback(() => {
         const params = new URLSearchParams();
-        if (search) params.set("search", search);
-        if (course) params.set("course", course);
-        if (domain) params.set("domain", domain);
-        if (year) params.set("year", year);
-        router.push(`/alumni?${params.toString()}`);
-    };
+        if (filters.search) params.set("search", filters.search);
+        if (filters.course && filters.course !== "all") params.set("course", filters.course);
+        if (filters.domain && filters.domain !== "all") params.set("domain", filters.domain);
+        if (filters.year && filters.year !== "all") params.set("year", filters.year);
 
-    const clearFilters = () => {
-        setSearch("");
-        setCourse("");
-        setDomain("");
-        setYear("");
+        router.push(`/alumni?${params.toString()}`);
+    }, [filters, router]);
+
+    const clearFilters = useCallback(() => {
+        setFilters({
+            search: "",
+            course: "",
+            domain: "",
+            year: "",
+        });
         router.push("/alumni");
-    };
+    }, [router]);
 
     const getInitials = (name: string) =>
         name
@@ -91,150 +90,170 @@ export default function AlumniDirectoryClient({
             .toUpperCase()
             .slice(0, 2);
 
-    const hasActiveFilters = search || course || domain || year;
+    const hasActiveFilters = filters.search || (filters.course && filters.course !== "all") || (filters.domain && filters.domain !== "all") || (filters.year && filters.year !== "all");
 
     return (
-        <div className="flex flex-col min-h-screen bg-background">
-            {/* Header Section */}
-            <div className="border-b bg-card pt-16 pb-12">
+        <div className="flex flex-col flex-1">
+            {/* Search and Hero Section */}
+            <section className="bg-card pt-20 pb-16 border-b">
                 <div className="container mx-auto px-4 md:px-6">
-                    <div className="grid gap-8 md:grid-cols-2 lg:items-center">
-                        <div className="space-y-4">
-                            <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
+                    <div className="flex flex-col gap-8">
+                        <div className="space-y-4 text-center md:text-left">
+                            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">
                                 Alumni Directory
                             </h1>
-                            <p className="max-w-[600px] text-muted-foreground text-lg">
-                                Connect with accomplished alumni across various industries and
-                                domains to expand your professional network.
+                            <p className="max-w-[700px] text-muted-foreground text-lg">
+                                Reconnect with your peers, discover industry mentors, and forge professional connections within the Hindu Alumni community.
                             </p>
                         </div>
 
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-3 max-w-2xl">
                             <div className="relative flex-1">
-                                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     placeholder="Search by name, company, or role..."
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
+                                    value={filters.search}
+                                    onChange={(e) => updateFilter("search", e.target.value)}
                                     onKeyDown={(e) => e.key === "Enter" && applyFilters()}
-                                    className="pl-9 h-10"
+                                    className="pl-10 h-11"
                                 />
                             </div>
-                            <Button onClick={applyFilters}>Search</Button>
+                            <Button size="lg" onClick={applyFilters} className="h-11 px-8">
+                                Search
+                            </Button>
+                        </div>
+
+                        {/* Dropdown Filters */}
+                        <div className="flex flex-wrap gap-4 items-center pt-2">
+                            <Select
+                                value={filters.course || "all"}
+                                onValueChange={(v) => { updateFilter("course", v); setTimeout(applyFilters, 0); }}
+                            >
+                                <SelectTrigger className="w-[180px] bg-background">
+                                    <SelectValue placeholder="All Courses" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Courses</SelectItem>
+                                    {courses.map((c) => (
+                                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Select
+                                value={filters.domain || "all"}
+                                onValueChange={(v) => { updateFilter("domain", v); setTimeout(applyFilters, 0); }}
+                            >
+                                <SelectTrigger className="w-[180px] bg-background">
+                                    <SelectValue placeholder="All Industries" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Industries</SelectItem>
+                                    {domains.map((d) => (
+                                        <SelectItem key={d} value={d}>{d}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Select
+                                value={filters.year || "all"}
+                                onValueChange={(v) => { updateFilter("year", v); setTimeout(applyFilters, 0); }}
+                            >
+                                <SelectTrigger className="w-[140px] bg-background">
+                                    <SelectValue placeholder="All Years" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Years</SelectItem>
+                                    {years.map((y) => (
+                                        <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            {hasActiveFilters && (
+                                <Button
+                                    variant="ghost"
+                                    onClick={clearFilters}
+                                    className="text-muted-foreground hover:text-foreground"
+                                >
+                                    <X className="mr-2 h-4 w-4" />
+                                    Clear Filters
+                                </Button>
+                            )}
                         </div>
                     </div>
-
-                    {/* Filters */}
-                    <div className="mt-8 flex flex-wrap gap-4 items-center">
-                        <Select value={course} onValueChange={setCourse}>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="All Courses" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Courses</SelectItem>
-                                {courses.map((c) => (
-                                    <SelectItem key={c} value={c}>
-                                        {c}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-
-                        <Select value={domain} onValueChange={setDomain}>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="All Domains" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Domains</SelectItem>
-                                {domains.map((d) => (
-                                    <SelectItem key={d} value={d}>
-                                        {d}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-
-                        <Select value={year} onValueChange={setYear}>
-                            <SelectTrigger className="w-[140px]">
-                                <SelectValue placeholder="All Years" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Years</SelectItem>
-                                {years.map((y) => (
-                                    <SelectItem key={y} value={y.toString()}>
-                                        {y}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-
-                        {hasActiveFilters && (
-                            <Button
-                                variant="ghost"
-                                onClick={clearFilters}
-                                className="text-muted-foreground"
-                            >
-                                <X className="mr-2 h-4 w-4" />
-                                Clear
-                            </Button>
-                        )}
-                    </div>
                 </div>
-            </div>
+            </section>
 
-            {/* Results */}
-            <div className="flex-1 bg-slate-50 py-12">
+            {/* Results Grid */}
+            <main className="bg-slate-50/50 flex-1 py-12">
                 <div className="container mx-auto px-4 md:px-6">
-                    <div className="mb-6 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                        Showing {alumni.length} Alumni
+                    <div className="flex items-center justify-between mb-8">
+                        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                            Showing {alumni.length} results
+                        </h2>
                     </div>
 
                     {alumni.length === 0 ? (
-                        <div className="text-center py-20 border-2 border-dashed rounded-lg bg-background/50">
-                            <h3 className="text-lg font-medium text-muted-foreground mb-2">
-                                No alumni found
-                            </h3>
-                            <Button variant="link" onClick={clearFilters}>
-                                Clear Filters
+                        <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed rounded-xl bg-background/50 text-center">
+                            <div className="bg-muted p-4 rounded-full mb-4">
+                                <Search className="h-8 w-8 text-muted-foreground" />
+                            </div>
+                            <h3 className="text-xl font-bold mb-2">No alumni found</h3>
+                            <p className="text-muted-foreground mb-6 max-w-xs">
+                                Try adjusting your search or filters to find what you're looking for.
+                            </p>
+                            <Button variant="outline" onClick={clearFilters}>
+                                Reset all filters
                             </Button>
                         </div>
                     ) : (
-                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             {alumni.map((person) => (
-                                <Link href={`/alumni/${person.id}`} key={person.id}>
-                                    <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
-                                        <CardHeader className="flex flex-row items-center gap-4 space-y-0 pb-2">
-                                            <Avatar className="h-12 w-12 border">
+                                <Link
+                                    href={`/alumni/${person.id}`}
+                                    key={person.id}
+                                    className="group"
+                                >
+                                    <Card className="h-full border border-border/50 transition-all duration-300 hover:shadow-xl hover:border-primary/20 hover:-translate-y-1">
+                                        <CardHeader className="flex flex-row items-center gap-4 space-y-0 pb-4">
+                                            <Avatar className="h-14 w-14 ring-2 ring-background ring-offset-2 ring-offset-slate-100 group-hover:ring-primary/20 transition-all">
                                                 <AvatarImage src={person.image || undefined} alt={person.name} />
-                                                <AvatarFallback>{getInitials(person.name)}</AvatarFallback>
+                                                <AvatarFallback className="text-lg font-bold bg-slate-100 text-slate-900">
+                                                    {getInitials(person.name)}
+                                                </AvatarFallback>
                                             </Avatar>
-                                            <div className="space-y-1 overflow-hidden">
-                                                <CardTitle className="text-base font-semibold truncate">
+                                            <div className="space-y-1">
+                                                <CardTitle className="text-lg group-hover:text-primary transition-colors">
                                                     {person.name}
                                                 </CardTitle>
-                                                <CardDescription className="text-xs truncate">
+                                                <CardDescription className="text-xs font-medium bg-slate-100 w-fit px-2 py-0.5 rounded-full">
                                                     Class of {person.graduationYear}
                                                 </CardDescription>
                                             </div>
                                         </CardHeader>
-                                        <CardContent className="pt-4">
-                                            <Separator className="mb-4" />
-                                            <div className="space-y-2 text-sm text-muted-foreground">
-                                                <div className="flex items-center gap-2">
-                                                    <Briefcase className="h-4 w-4 shrink-0" />
-                                                    <span className="truncate">
-                                                        {person.currentRole || "Alumni"}
-                                                        {person.company && ` at ${person.company}`}
+                                        <CardContent>
+                                            <Separator className="mb-4 opacity-50" />
+                                            <div className="space-y-3 text-sm">
+                                                <div className="flex items-start gap-3 text-foreground/80">
+                                                    <Briefcase className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+                                                    <span className="leading-tight">
+                                                        <span className="font-semibold text-foreground">
+                                                            {person.currentRole || "Alumni"}
+                                                        </span>
+                                                        {person.company && <><br /><span className="text-xs text-muted-foreground">{person.company}</span></>}
                                                     </span>
                                                 </div>
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-3 text-muted-foreground">
                                                     <GraduationCap className="h-4 w-4 shrink-0" />
                                                     <span className="truncate">{person.course}</span>
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <MapPin className="h-4 w-4 shrink-0" />
-                                                    <span className="truncate">{person.location || "N/A"}</span>
-                                                </div>
+                                                {person.location && (
+                                                    <div className="flex items-center gap-3 text-muted-foreground">
+                                                        <MapPin className="h-4 w-4 shrink-0" />
+                                                        <span className="truncate">{person.location}</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -243,7 +262,7 @@ export default function AlumniDirectoryClient({
                         </div>
                     )}
                 </div>
-            </div>
+            </main>
         </div>
     );
 }

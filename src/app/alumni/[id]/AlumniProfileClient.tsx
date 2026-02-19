@@ -21,6 +21,7 @@ import {
     Building,
     User,
     Send,
+    ExternalLink,
 } from "lucide-react";
 
 interface Alumni {
@@ -48,179 +49,216 @@ export default function AlumniProfileClient({ alumni }: { alumni: Alumni }) {
             .slice(0, 2);
 
     return (
-        <div className="flex-1 bg-slate-50 py-8 md:py-12">
+        <div className="bg-slate-50/50 min-h-full py-8 md:py-16">
             <div className="container mx-auto px-4 md:px-6 max-w-5xl">
+                {/* Navigation */}
                 <Link
                     href="/alumni"
-                    className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary mb-6 transition-colors"
+                    className="inline-flex items-center text-sm font-semibold text-muted-foreground hover:text-primary mb-8 group transition-colors"
                 >
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back to Directory
+                    <ArrowLeft className="mr-2 h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+                    Back to Alumni Directory
                 </Link>
 
-                {/* Header Card */}
-                <Card className="mb-8 border-none shadow-md overflow-hidden">
-                    <div className="h-32 bg-gradient-to-r from-blue-600 to-indigo-600"></div>
-                    <div className="px-6 pb-6 relative">
-                        <div className="flex flex-col md:flex-row items-start md:items-end -mt-12 mb-4 gap-4">
-                            <Avatar className="h-32 w-32 border-4 border-white shadow-sm">
-                                <AvatarImage src={alumni.image || undefined} alt={alumni.name} />
-                                <AvatarFallback className="text-2xl bg-slate-100">
-                                    {getInitials(alumni.name)}
-                                </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 pt-2 md:pt-0">
-                                <h1 className="text-3xl font-bold text-gray-900">{alumni.name}</h1>
-                                <p className="text-lg text-muted-foreground">
-                                    {alumni.currentRole && `${alumni.currentRole}`}
-                                    {alumni.company && ` at ${alumni.company}`}
-                                </p>
+                {/* Hero Profile Section */}
+                <div className="relative mb-10">
+                    <Card className="border-none shadow-xl shadow-slate-200/50 overflow-hidden rounded-2xl">
+                        {/* Banner Decoration */}
+                        <div className="h-40 bg-gradient-to-r from-primary/90 via-blue-600 to-indigo-700"></div>
+
+                        <div className="px-6 md:px-10 pb-8 relative">
+                            <div className="flex flex-col md:flex-row items-center md:items-end -mt-16 md:-mt-20 mb-6 gap-6 text-center md:text-left">
+                                <Avatar className="h-32 w-32 md:h-40 md:w-40 border-4 border-background shadow-xl rounded-full">
+                                    <AvatarImage src={alumni.image || undefined} alt={alumni.name} />
+                                    <AvatarFallback className="text-3xl font-bold bg-slate-100 text-slate-900">
+                                        {getInitials(alumni.name)}
+                                    </AvatarFallback>
+                                </Avatar>
+
+                                <div className="flex-1 space-y-2 md:pb-2">
+                                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                                        <h1 className="text-3xl md:text-4xl font-black tracking-tight text-foreground">
+                                            {alumni.name}
+                                        </h1>
+                                        {alumni.domain && (
+                                            <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-none px-3 font-semibold">
+                                                {alumni.domain}
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <p className="text-lg md:text-xl font-medium text-muted-foreground">
+                                        {alumni.currentRole || "Alumni"}
+                                        {alumni.company && (
+                                            <span>
+                                                <span className="mx-2 opacity-50">•</span>
+                                                {alumni.company}
+                                            </span>
+                                        )}
+                                    </p>
+                                </div>
+
+                                <div className="flex flex-wrap justify-center gap-3 md:pb-2">
+                                    {alumni.linkedin && (
+                                        <Button variant="outline" size="lg" className="rounded-full px-6" asChild>
+                                            <a
+                                                href={alumni.linkedin}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                <Linkedin className="mr-2 h-4 w-4" />
+                                                LinkedIn
+                                            </a>
+                                        </Button>
+                                    )}
+                                    <Button size="lg" className="rounded-full px-8 shadow-md hover:shadow-lg transition-all" asChild>
+                                        <Link href={`/alumni/${alumni.id}/connect`}>
+                                            <Send className="mr-2 h-4 w-4" />
+                                            Connect
+                                        </Link>
+                                    </Button>
+                                </div>
                             </div>
-                            <div className="flex gap-2 mt-4 md:mt-0">
-                                {alumni.linkedin && (
-                                    <Button variant="outline" size="icon" asChild>
+                        </div>
+                    </Card>
+                </div>
+
+                <div className="grid gap-8 lg:grid-cols-3">
+                    {/* Left/Main Column */}
+                    <div className="lg:col-span-2 space-y-8">
+                        {/* About Section */}
+                        <section>
+                            <Card className="border-border/50 shadow-sm rounded-xl">
+                                <CardHeader>
+                                    <CardTitle className="text-xl flex items-center gap-2">
+                                        <User className="h-5 w-5 text-primary" />
+                                        About
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    {alumni.summary ? (
+                                        <p className="text-foreground/80 leading-relaxed text-lg whitespace-pre-wrap">
+                                            {alumni.summary}
+                                        </p>
+                                    ) : (
+                                        <p className="text-muted-foreground italic italic">
+                                            No bio provided.
+                                        </p>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </section>
+
+                        {/* Experience & Details */}
+                        <section>
+                            <Card className="border-border/50 shadow-sm rounded-xl">
+                                <CardHeader>
+                                    <CardTitle className="text-xl flex items-center gap-2">
+                                        <Briefcase className="h-5 w-5 text-primary" />
+                                        Education & Professional Info
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="grid gap-8 sm:grid-cols-2">
+                                    <div className="space-y-1">
+                                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                                            Course
+                                        </p>
+                                        <div className="flex items-center gap-2 font-semibold text-lg">
+                                            <GraduationCap className="h-5 w-5 text-muted-foreground" />
+                                            {alumni.course}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                                            Graduation Year
+                                        </p>
+                                        <div className="flex items-center gap-2 font-semibold text-lg">
+                                            <Calendar className="h-5 w-5 text-muted-foreground" />
+                                            Class of {alumni.graduationYear}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                                            Current Organization
+                                        </p>
+                                        <div className="flex items-center gap-2 font-semibold text-lg">
+                                            <Building className="h-5 w-5 text-muted-foreground" />
+                                            {alumni.company || "N/A"}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                                            Location
+                                        </p>
+                                        <div className="flex items-center gap-2 font-semibold text-lg">
+                                            <MapPin className="h-5 w-5 text-muted-foreground" />
+                                            {alumni.location || "N/A"}
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </section>
+                    </div>
+
+                    {/* Right/Sidebar Column */}
+                    <div className="space-y-8">
+                        {/* Quick Connection Card */}
+                        <Card className="bg-primary border-none text-primary-foreground shadow-lg rounded-xl overflow-hidden relative">
+                            <div className="absolute top-0 right-0 p-4 opacity-10">
+                                <Send className="h-24 w-24 -mr-8 -mt-8" />
+                            </div>
+                            <CardContent className="pt-8 relative z-10 text-center space-y-4">
+                                <h3 className="text-xl font-bold">Interested in connecting?</h3>
+                                <p className="text-primary-foreground/80 text-sm">
+                                    Reach out to {alumni.name.split(' ')[0]} for mentorship, internship opportunities, or professional networking.
+                                </p>
+                                <Button size="lg" variant="secondary" className="w-full font-bold shadow-md hover:bg-white transition-colors" asChild>
+                                    <Link href={`/alumni/${alumni.id}/connect`}>
+                                        Send Connection Request
+                                    </Link>
+                                </Button>
+                            </CardContent>
+                        </Card>
+
+                        {/* Details Sidebar */}
+                        <Card className="border-border/50 shadow-sm rounded-xl">
+                            <CardHeader>
+                                <CardTitle className="text-base font-bold">Profile Details</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-1.5">
+                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">
+                                        Industry
+                                    </p>
+                                    <Badge variant="outline" className="text-foreground/80 font-medium px-2.5 py-1">
+                                        {alumni.domain || "Not specified"}
+                                    </Badge>
+                                </div>
+
+                                <Separator className="opacity-50" />
+
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">
+                                        Social
+                                    </p>
+                                    {alumni.linkedin ? (
                                         <a
                                             href={alumni.linkedin}
                                             target="_blank"
                                             rel="noopener noreferrer"
+                                            className="flex items-center justify-between group p-2 rounded-lg hover:bg-slate-50 border border-transparent hover:border-border/50 transition-all text-sm font-medium"
                                         >
-                                            <Linkedin className="h-4 w-4" />
+                                            <span className="flex items-center gap-2">
+                                                <Linkedin className="h-4 w-4 text-blue-600" />
+                                                LinkedIn Profile
+                                            </span>
+                                            <ExternalLink className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
                                         </a>
-                                    </Button>
-                                )}
-                                <Button asChild>
-                                    <Link href={`/alumni/${alumni.id}/connect`}>
-                                        <Send className="mr-2 h-4 w-4" />
-                                        Connect
-                                    </Link>
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </Card>
-
-                <div className="grid gap-8 md:grid-cols-3">
-                    {/* Left Column: Details */}
-                    <div className="md:col-span-2 space-y-6">
-                        {alumni.summary && (
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>About</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                                        {alumni.summary}
-                                    </p>
-                                </CardContent>
-                            </Card>
-                        )}
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Education & Career</CardTitle>
-                            </CardHeader>
-                            <CardContent className="grid gap-6 sm:grid-cols-2">
-                                <div className="flex items-start gap-3">
-                                    <div className="p-2 bg-blue-50 rounded-lg">
-                                        <GraduationCap className="h-5 w-5 text-blue-600" />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-medium text-muted-foreground">Course</p>
-                                        <p className="font-medium">{alumni.course}</p>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-start gap-3">
-                                    <div className="p-2 bg-indigo-50 rounded-lg">
-                                        <Calendar className="h-5 w-5 text-indigo-600" />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-medium text-muted-foreground">Class of</p>
-                                        <p className="font-medium">{alumni.graduationYear}</p>
-                                    </div>
-                                </div>
-
-                                {alumni.currentRole && (
-                                    <div className="flex items-start gap-3">
-                                        <div className="p-2 bg-green-50 rounded-lg">
-                                            <Briefcase className="h-5 w-5 text-green-600" />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-medium text-muted-foreground">Current Role</p>
-                                            <p className="font-medium">{alumni.currentRole}</p>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {alumni.company && (
-                                    <div className="flex items-start gap-3">
-                                        <div className="p-2 bg-purple-50 rounded-lg">
-                                            <Building className="h-5 w-5 text-purple-600" />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-medium text-muted-foreground">Company</p>
-                                            <p className="font-medium">{alumni.company}</p>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {alumni.location && (
-                                    <div className="flex items-start gap-3">
-                                        <div className="p-2 bg-red-50 rounded-lg">
-                                            <MapPin className="h-5 w-5 text-red-600" />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-medium text-muted-foreground">Location</p>
-                                            <p className="font-medium">{alumni.location}</p>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {alumni.domain && (
-                                    <div className="flex items-start gap-3">
-                                        <div className="p-2 bg-orange-50 rounded-lg">
-                                            <User className="h-5 w-5 text-orange-600" />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-medium text-muted-foreground">Industry</p>
-                                            <p className="font-medium">{alumni.domain}</p>
-                                        </div>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Right Column: Sidebar */}
-                    <div className="space-y-6">
-                        <Card className="bg-primary/5 border-primary/20">
-                            <CardContent className="pt-6 text-center space-y-4">
-                                <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                                    <Send className="h-6 w-6 text-primary" />
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold text-lg">Want to Connect?</h3>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                        Reach out to {alumni.name.split(' ')[0]} for mentorship, career guidance, or networking.
-                                    </p>
-                                </div>
-                                <Button className="w-full" asChild>
-                                    <Link href={`/alumni/${alumni.id}/connect`}>
-                                        Send Request
-                                    </Link>
-                                </Button>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-base">Tags</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="flex flex-wrap gap-2">
-                                    {alumni.domain && <Badge variant="secondary">{alumni.domain}</Badge>}
-                                    <Badge variant="outline">Class of {alumni.graduationYear}</Badge>
-                                    {alumni.course && <Badge variant="outline">{alumni.course}</Badge>}
+                                    ) : (
+                                        <p className="text-xs text-muted-foreground italic px-1">No links available.</p>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
