@@ -33,7 +33,12 @@ export default async function AlumniPage({ searchParams }: PageProps) {
     }
     if (course) where.course = { contains: course, mode: 'insensitive' };
     if (domain) where.domain = { contains: domain, mode: 'insensitive' };
-    if (year) where.graduationYear = parseInt(year);
+    if (year && year !== 'all') {
+        const parsedYear = parseInt(year);
+        if (!isNaN(parsedYear)) {
+            where.graduationYear = parsedYear;
+        }
+    }
 
     const alumni = await prisma.alumni.findMany({
         where,
