@@ -25,20 +25,24 @@ function createPrismaClient() {
     const dbUrl = process.env.PRISMA_DATABASE_URL || process.env.DATABASE_URL;
     const isAccelerate = dbUrl?.startsWith('prisma://') || dbUrl?.startsWith('prisma+postgres://');
 
-    console.log(`Prisma: Initializing client. Accelerate: ${!!isAccelerate}`);
+    console.log(`Prisma: Initializing client. URL present: ${!!dbUrl}, Accelerate: ${!!isAccelerate}`);
 
     try {
-        if (isAccelerate && dbUrl) {
-            // Using datasourceUrl for Accelerate in production
-            return new PrismaClient({
-                datasourceUrl: dbUrl,
-            } as any).$extends(withAccelerate());
+        // Construct options explicitly to avoid "empty options" errors in production
+        const options: any = {};
+        if (dbUrl) {
+            options.datasourceUrl = dbUrl;
         }
 
-        // For non-accelerate or local, use default constructor to pick up standard DATABASE_URL
-        return new PrismaClient();
+        if (isAccelerate && dbUrl) {
+            return new PrismaClient(options).$extends(withAccelerate());
+        }
+
+        // Even for non-accelerate, passing the URL explicitly can be more robust in some CI/CD environments
+        return new PrismaClient(options);
     } catch (error) {
         console.error('Prisma: Critical initialization error:', error);
+        // Last resort fallback
         return new PrismaClient();
     }
 }
