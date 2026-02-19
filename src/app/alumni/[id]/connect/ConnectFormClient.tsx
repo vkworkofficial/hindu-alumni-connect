@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import {
     Card,
@@ -22,7 +22,21 @@ import {
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, CheckCircle2, ArrowLeft, Send, ShieldCheck, Mail } from "lucide-react";
+import {
+    Loader2,
+    CheckCircle2,
+    ArrowLeft,
+    Send,
+    ShieldCheck,
+    Mail,
+    Upload,
+    FileText,
+    X,
+    AlertTriangle,
+    Lightbulb,
+    Paperclip,
+    MessageSquare,
+} from "lucide-react";
 
 interface Alumni {
     id: string;
@@ -30,6 +44,12 @@ interface Alumni {
     currentRole?: string;
     company?: string;
     image?: string | null;
+}
+
+interface ConnectFormProps {
+    alumni: Alumni;
+    userName: string;
+    userEmail: string;
 }
 
 const categories = [
@@ -40,17 +60,32 @@ const categories = [
     { value: "OTHER", label: "Other Inquiry" },
 ];
 
-export default function ConnectFormClient({ alumni }: { alumni: Alumni }) {
+const MIN_MESSAGE_CHARS = 100;
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_FILE_TYPES = [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+const ALLOWED_EXTENSIONS = ".pdf, .doc, .docx";
+
+export default function ConnectFormClient({ alumni, userName, userEmail }: ConnectFormProps) {
     const [formData, setFormData] = useState({
-        studentName: "",
-        studentEmail: "",
+        studentName: userName,
+        studentEmail: userEmail,
         subject: "",
         message: "",
         category: "",
     });
+    const [attachment, setAttachment] = useState<File | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState(false);
+    const [isDragOver, setIsDragOver] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const messageCharCount = formData.message.length;
+    const messageTooShort = formData.message.length > 0 && messageCharCount < MIN_MESSAGE_CHARS;
 
     const handleChange = (field: string) => (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -62,18 +97,85 @@ export default function ConnectFormClient({ alumni }: { alumni: Alumni }) {
         setFormData((prev) => ({ ...prev, category: value }));
     };
 
+    const handleFileSelect = useCallback((file: File) => {
+        if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+            setError(`Invalid file type. Only ${ALLOWED_EXTENSIONS} files are accepted.`);
+            return;
+        }
+        if (file.size > MAX_FILE_SIZE) {
+            setError("File is too large. Maximum size is 5MB.");
+            return;
+        }
+        setError("");
+        setAttachment(file);
+    }, []);
+
+    const handleDrop = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragOver(false);
+        const file = e.dataTransfer.files[0];
+        if (file) handleFileSelect(file);
+    }, [handleFileSelect]);
+
+    const handleDragOver = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragOver(true);
+    }, []);
+
+    const handleDragLeave = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragOver(false);
+    }, []);
+
+    const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) handleFileSelect(file);
+    };
+
+    const removeAttachment = () => {
+        setAttachment(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+    };
+
+    const toBase64 = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+        });
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
         setError("");
 
+        if (messageCharCount < MIN_MESSAGE_CHARS) {
+            setError(`Your message must be at least ${MIN_MESSAGE_CHARS} characters. Currently: ${messageCharCount}. Please provide more detail about your request.`);
+            return;
+        }
+
+        setLoading(true);
+
         try {
+            let attachmentData = undefined;
+            if (attachment) {
+                const base64 = await toBase64(attachment);
+                attachmentData = {
+                    name: attachment.name,
+                    type: attachment.type,
+                    size: attachment.size,
+                    data: base64,
+                };
+            }
+
             const res = await fetch("/api/requests", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     ...formData,
                     alumniId: alumni.id,
+                    attachment: attachmentData,
                 }),
             });
 
@@ -135,7 +237,7 @@ export default function ConnectFormClient({ alumni }: { alumni: Alumni }) {
                     className="inline-flex items-center text-sm font-semibold text-muted-foreground hover:text-primary mb-8 group transition-colors"
                 >
                     <ArrowLeft className="mr-2 h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-                    Back to {alumni.name.split(' ')[0]}'s Profile
+                    Back to {alumni.name.split(' ')[0]}&apos;s Profile
                 </Link>
 
                 <div className="grid gap-10 lg:grid-cols-3">
@@ -146,7 +248,7 @@ export default function ConnectFormClient({ alumni }: { alumni: Alumni }) {
                                 Send a <span className="text-primary">Connection</span> Request
                             </h1>
                             <p className="text-muted-foreground text-lg leading-relaxed">
-                                Introduce yourself and explain how {alumni.name.split(' ')[0]} can help you. A clear, concise message increases your chances of a response.
+                                Reach out to {alumni.name.split(' ')[0]} with a thoughtful, detailed introduction.
                             </p>
                         </div>
 
@@ -168,14 +270,47 @@ export default function ConnectFormClient({ alumni }: { alumni: Alumni }) {
                             </CardContent>
                         </Card>
 
-                        <div className="p-4 bg-primary/5 rounded-xl border border-primary/10 space-y-3">
-                            <div className="flex items-center gap-2 text-primary font-bold text-sm">
-                                <ShieldCheck className="h-4 w-4" />
-                                Professional Conduct
+                        {/* Professional Conduct & Guidelines */}
+                        <div className="space-y-4">
+                            <div className="p-4 bg-primary/5 rounded-xl border border-primary/10 space-y-3">
+                                <div className="flex items-center gap-2 text-primary font-bold text-sm">
+                                    <ShieldCheck className="h-4 w-4" />
+                                    Professional Conduct
+                                </div>
+                                <ul className="text-xs text-muted-foreground leading-normal space-y-2">
+                                    <li>• Be respectful and professional in your communication</li>
+                                    <li>• Introduce yourself clearly — name, course, year</li>
+                                    <li>• Avoid generic or one-line requests</li>
+                                    <li>• Do not spam multiple alumni with identical messages</li>
+                                </ul>
                             </div>
-                            <p className="text-xs text-muted-foreground leading-normal">
-                                Ensure your message is professional and purposeful. Avoid spamming or overly general requests.
-                            </p>
+
+                            <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 space-y-3">
+                                <div className="flex items-center gap-2 text-amber-700 font-bold text-sm">
+                                    <Lightbulb className="h-4 w-4" />
+                                    Tips for a Great Request
+                                </div>
+                                <ul className="text-xs text-amber-800/80 leading-normal space-y-2">
+                                    <li>• <strong>Be specific</strong> — explain exactly what guidance you need</li>
+                                    <li>• <strong>Show effort</strong> — mention what you&apos;ve already researched or tried</li>
+                                    <li>• <strong>Attach your CV</strong> — helps alumni understand your background quickly</li>
+                                    <li>• <strong>Keep it focused</strong> — one clear ask per request</li>
+                                </ul>
+                            </div>
+
+                            <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 space-y-3">
+                                <div className="flex items-center gap-2 text-blue-700 font-bold text-sm">
+                                    <MessageSquare className="h-4 w-4" />
+                                    What to Include
+                                </div>
+                                <ul className="text-xs text-blue-800/80 leading-normal space-y-2">
+                                    <li>• Your current academic year and course</li>
+                                    <li>• Why you&apos;re reaching out to this specific alumni</li>
+                                    <li>• Your career interests and goals</li>
+                                    <li>• Any relevant projects, internships, or experience</li>
+                                    <li>• Specific questions you have for them</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
 
@@ -183,7 +318,8 @@ export default function ConnectFormClient({ alumni }: { alumni: Alumni }) {
                     <div className="lg:col-span-2">
                         {error && (
                             <Alert variant="destructive" className="mb-8 border-none shadow-md">
-                                <AlertTitle className="font-bold uppercase tracking-wider text-xs">Error Occurred</AlertTitle>
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle className="font-bold uppercase tracking-wider text-xs">Error</AlertTitle>
                                 <AlertDescription className="font-medium">{error}</AlertDescription>
                             </Alert>
                         )}
@@ -200,8 +336,12 @@ export default function ConnectFormClient({ alumni }: { alumni: Alumni }) {
                                                 value={formData.studentName}
                                                 onChange={handleChange("studentName")}
                                                 required
-                                                className="bg-slate-50 border-slate-200 h-11 focus:bg-white transition-colors"
+                                                readOnly={!!userName}
+                                                className={`bg-slate-50 border-slate-200 h-11 focus:bg-white transition-colors ${userName ? 'opacity-70 cursor-not-allowed' : ''}`}
                                             />
+                                            {userName && (
+                                                <p className="text-xs text-muted-foreground">Auto-filled from your profile</p>
+                                            )}
                                         </div>
                                         <div className="space-y-2">
                                             <Label htmlFor="studentEmail" className="font-bold text-foreground">Your Email Address</Label>
@@ -210,13 +350,17 @@ export default function ConnectFormClient({ alumni }: { alumni: Alumni }) {
                                                 <Input
                                                     id="studentEmail"
                                                     type="email"
-                                                    placeholder="email@example.com"
+                                                    placeholder="email@hinducollege.ac.in"
                                                     value={formData.studentEmail}
                                                     onChange={handleChange("studentEmail")}
                                                     required
-                                                    className="bg-slate-50 border-slate-200 h-11 pl-10 focus:bg-white transition-colors"
+                                                    readOnly={!!userEmail}
+                                                    className={`bg-slate-50 border-slate-200 h-11 pl-10 focus:bg-white transition-colors ${userEmail ? 'opacity-70 cursor-not-allowed' : ''}`}
                                                 />
                                             </div>
+                                            {userEmail && (
+                                                <p className="text-xs text-muted-foreground">Auto-filled from your account</p>
+                                            )}
                                         </div>
                                     </div>
 
@@ -253,18 +397,92 @@ export default function ConnectFormClient({ alumni }: { alumni: Alumni }) {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label htmlFor="message" className="font-bold text-foreground">Your Message</Label>
+                                        <div className="flex items-center justify-between">
+                                            <Label htmlFor="message" className="font-bold text-foreground">Your Message</Label>
+                                            <span className={`text-xs ${messageTooShort ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                                                {messageCharCount}/{MIN_MESSAGE_CHARS} chars min
+                                            </span>
+                                        </div>
                                         <Textarea
                                             id="message"
-                                            placeholder="Write your detailed request here..."
+                                            placeholder={`Dear ${alumni.name.split(' ')[0]},\n\nI am a [Year] student studying [Course] at Hindu College. I came across your profile and was impressed by your work at ${alumni.company || 'your company'}.\n\nI am reaching out because... [explain your specific request, what you've tried so far, and how they can help].\n\nThank you for your time.\n\nBest regards,\n${userName || 'Your Name'}`}
                                             value={formData.message}
                                             onChange={handleChange("message")}
-                                            className="min-h-[160px] bg-slate-50 border-slate-200 focus:bg-white transition-colors p-4 leading-relaxed"
+                                            className="min-h-[200px] bg-slate-50 border-slate-200 focus:bg-white transition-colors p-4 leading-relaxed"
                                             required
+                                        />
+                                        {messageTooShort && (
+                                            <p className="text-xs text-destructive">
+                                                Please write at least {MIN_MESSAGE_CHARS} characters. You&apos;re at {messageCharCount}. Be specific about your request and background.
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    {/* File Upload Area */}
+                                    <div className="space-y-2">
+                                        <Label className="font-bold text-foreground flex items-center gap-2">
+                                            <Paperclip className="h-4 w-4" />
+                                            Attachment (Optional)
+                                        </Label>
+                                        <p className="text-xs text-muted-foreground">
+                                            Upload your CV or resume to give the alumni context about your background. Max 5MB, PDF/DOC/DOCX only.
+                                        </p>
+
+                                        {attachment ? (
+                                            <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
+                                                <FileText className="h-8 w-8 text-green-600 shrink-0" />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-green-800 truncate">{attachment.name}</p>
+                                                    <p className="text-xs text-green-600">
+                                                        {(attachment.size / 1024).toFixed(1)} KB
+                                                    </p>
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={removeAttachment}
+                                                    className="text-green-700 hover:text-red-600 hover:bg-red-50 shrink-0"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <div
+                                                onDrop={handleDrop}
+                                                onDragOver={handleDragOver}
+                                                onDragLeave={handleDragLeave}
+                                                onClick={() => fileInputRef.current?.click()}
+                                                className={`flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed rounded-xl cursor-pointer transition-all ${isDragOver
+                                                        ? 'border-primary bg-primary/5 scale-[1.02]'
+                                                        : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100'
+                                                    }`}
+                                            >
+                                                <Upload className={`h-8 w-8 ${isDragOver ? 'text-primary' : 'text-muted-foreground'}`} />
+                                                <div className="text-center">
+                                                    <p className="text-sm font-medium text-foreground">
+                                                        {isDragOver ? 'Drop your file here' : 'Drag & drop your CV here'}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground mt-1">
+                                                        or <span className="text-primary font-medium underline">click to browse</span> • PDF, DOC, DOCX up to 5MB
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept={ALLOWED_EXTENSIONS}
+                                            onChange={handleFileInput}
+                                            className="hidden"
                                         />
                                     </div>
 
-                                    <Button type="submit" className="w-full h-12 text-lg font-bold rounded-xl shadow-lg hover:shadow-primary/20 transition-all" disabled={loading}>
+                                    <Button
+                                        type="submit"
+                                        className="w-full h-12 text-lg font-bold rounded-xl shadow-lg hover:shadow-primary/20 transition-all"
+                                        disabled={loading || messageTooShort}
+                                    >
                                         {loading ? (
                                             <>
                                                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />

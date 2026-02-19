@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
 
+const MIN_MESSAGE_CHARS = 100;
+
 // GET /api/requests - List all requests (admin-only)
 export async function GET() {
     if (process.env.NEXT_PHASE === 'phase-production-build') {
@@ -31,15 +33,23 @@ export async function GET() {
     }
 }
 
-// POST /api/requests - Create connection request (public)
+// POST /api/requests - Create connection request
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { studentName, studentEmail, subject, message, category, alumniId } = body;
+        const { studentName, studentEmail, subject, message, category, alumniId, attachment } = body;
 
         if (!studentName || !studentEmail || !subject || !message || !category || !alumniId) {
             return NextResponse.json(
                 { error: 'All fields are required' },
+                { status: 400 }
+            );
+        }
+
+        // Server-side message length validation
+        if (message.length < MIN_MESSAGE_CHARS) {
+            return NextResponse.json(
+                { error: `Message must be at least ${MIN_MESSAGE_CHARS} characters. Currently: ${message.length}.` },
                 { status: 400 }
             );
         }
@@ -53,12 +63,18 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Alumni not found' }, { status: 404 });
         }
 
+        // Build the message — if an attachment was provided, append its metadata
+        let fullMessage = message;
+        if (attachment && attachment.name) {
+            fullMessage += `\n\n---\n📎 Attachment: ${attachment.name} (${(attachment.size / 1024).toFixed(1)} KB)`;
+        }
+
         const connectionRequest = await prisma.connectionRequest.create({
             data: {
                 studentName,
                 studentEmail,
                 subject,
-                message,
+                message: fullMessage,
                 category,
                 alumniId,
             },

@@ -73,6 +73,17 @@ export const authOptions: AuthOptions = {
         maxAge: 24 * 60 * 60, // 24 hours
     },
     callbacks: {
+        async signIn({ user, account }) {
+            // Allow credentials sign-in (admin login) without domain check
+            if (account?.provider === 'credentials') return true;
+
+            // For Google sign-in, restrict to @hinducollege.ac.in
+            const email = user.email || '';
+            if (!email.endsWith('@hinducollege.ac.in')) {
+                return '/login?error=InvalidDomain';
+            }
+            return true;
+        },
         async jwt({ token, user, trigger, session }) {
             if (user) {
                 token.role = user.role;

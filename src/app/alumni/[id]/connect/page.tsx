@@ -44,7 +44,11 @@ export default async function ConnectPage({ params }: PageProps) {
         <div className="min-h-screen flex flex-col bg-background">
             <Navbar />
             <main className="flex-1">
-                <ConnectFormClient alumni={JSON.parse(JSON.stringify(alumni))} />
+                <ConnectFormClient
+                    alumni={JSON.parse(JSON.stringify(alumni))}
+                    userName={session.user?.name || ''}
+                    userEmail={session.user?.email || ''}
+                />
             </main>
             <Footer />
         </div>

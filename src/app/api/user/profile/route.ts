@@ -5,6 +5,8 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export const dynamic = 'force-dynamic';
 
+const MIN_BIO_WORDS = 30;
+
 // POST /api/user/profile - Update user profile
 export async function POST(req: Request) {
     if (process.env.NEXT_PHASE === 'phase-production-build') {
@@ -18,11 +20,21 @@ export async function POST(req: Request) {
 
     try {
         const body = await req.json();
-        const { course, batch, bio } = body;
+        const { name, course, batch, bio } = body;
+
+        // Server-side bio word count validation
+        const bioWordCount = (bio || '').trim().split(/\s+/).filter(Boolean).length;
+        if (bioWordCount < MIN_BIO_WORDS) {
+            return NextResponse.json(
+                { error: `Bio must be at least ${MIN_BIO_WORDS} words. Currently: ${bioWordCount}.` },
+                { status: 400 }
+            );
+        }
 
         const user = await prisma.user.update({
             where: { email: session.user.email },
             data: {
+                name: name || undefined,
                 course,
                 batch,
                 bio,
