@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 // POST /api/user/profile - Update user profile
 export async function POST(req: Request) {
-    if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'production') {
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
         return NextResponse.json({ message: 'Static build bypass' });
     }
     const session = await getServerSession(authOptions);

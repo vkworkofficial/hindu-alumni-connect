@@ -22,10 +22,8 @@ function createPrismaClient() {
 
     const dbUrl = process.env.DATABASE_URL || '';
 
-    // Explicitly check for Accelerate patterns
-    const isAccelerate = dbUrl.includes('prisma://') ||
-        dbUrl.includes('prisma+postgres://') ||
-        dbUrl.includes('db.prisma.io');
+    // Explicitly check for Accelerate patterns (prisma:// protocol)
+    const isAccelerate = dbUrl.startsWith('prisma://') || dbUrl.startsWith('prisma+postgres://');
 
     const client = new PrismaClient();
 
@@ -38,4 +36,4 @@ function createPrismaClient() {
 
 export const prisma = globalForPrisma.prisma || createPrismaClient();
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+if (process.env.NODE_ENV !== 'production' || isBuild) globalForPrisma.prisma = prisma;

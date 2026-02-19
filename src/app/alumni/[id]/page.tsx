@@ -10,7 +10,7 @@ interface PageProps {
 }
 
 export async function generateMetadata({ params }: PageProps) {
-    if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'production') {
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
         return { title: 'Alumni Profile | Hindu Connect' };
     }
     try {
@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: PageProps) {
 }
 
 export default async function AlumniProfilePage({ params }: PageProps) {
-    if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'production') {
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center">
                 <p>Loading Profile...</p>

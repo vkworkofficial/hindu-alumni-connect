@@ -14,7 +14,7 @@ interface PageProps {
 }
 
 export default async function AlumniPage({ searchParams }: PageProps) {
-    if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'production') {
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center">
                 <p>Loading Alumni Directory...</p>

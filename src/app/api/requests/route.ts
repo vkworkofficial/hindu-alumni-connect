@@ -6,7 +6,7 @@ import { authOptions } from '../auth/[...nextauth]/route';
 
 // GET /api/requests - List all requests (admin-only)
 export async function GET() {
-    if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'production') {
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
         return NextResponse.json({ message: 'Static build bypass' });
     }
     try {

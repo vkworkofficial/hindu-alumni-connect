@@ -10,7 +10,7 @@ interface RouteParams {
 
 // GET /api/alumni/[id] - Get single alumni (public)
 export async function GET(request: NextRequest, { params }: RouteParams) {
-    if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'production') {
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
         return NextResponse.json({ message: 'Static build bypass' });
     }
     try {
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 // PUT /api/alumni/[id] - Update alumni (admin-only)
 export async function PUT(request: NextRequest, { params }: RouteParams) {
-    if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'production') {
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
         return NextResponse.json({ message: 'Static build bypass' });
     }
     try {
@@ -83,7 +83,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
 // DELETE /api/alumni/[id] - Delete alumni (admin-only)
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
-    if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'production') {
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
         return NextResponse.json({ message: 'Static build bypass' });
     }
     try {
