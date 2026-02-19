@@ -1,4 +1,5 @@
 import NextAuth, { AuthOptions, DefaultSession } from 'next-auth';
+export const dynamic = 'force-dynamic';
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from 'next-auth/providers/credentials';
