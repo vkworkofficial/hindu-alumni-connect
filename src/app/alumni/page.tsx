@@ -45,9 +45,9 @@ export default async function AlumniPage({ searchParams }: PageProps) {
         select: { course: true, domain: true, graduationYear: true },
     });
 
-    const courses = [...new Set(allAlumni.map((a) => a.course).filter(Boolean))];
-    const domains = [...new Set(allAlumni.map((a) => a.domain).filter(Boolean))];
-    const years = [...new Set(allAlumni.map((a) => a.graduationYear))].sort((a, b) => b - a);
+    const courses = [...new Set(allAlumni.map((a: { course: string }) => a.course).filter(Boolean))];
+    const domains = [...new Set(allAlumni.map((a: { domain: string | null }) => a.domain).filter(Boolean))];
+    const years = ([...new Set(allAlumni.map((a: { graduationYear: number }) => a.graduationYear))] as number[]).sort((a, b) => b - a);
 
     return (
         <div className="min-h-screen flex flex-col">
