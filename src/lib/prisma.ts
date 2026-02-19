@@ -1,4 +1,4 @@
-import { PrismaClient } from '../generated/prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 
@@ -8,7 +8,8 @@ function createPrismaClient() {
     const directUrl = process.env.DIRECT_DATABASE_URL;
     const dbUrl = process.env.DATABASE_URL;
 
-    if (directUrl) {
+    // Use PG adapter if DIRECT_DATABASE_URL is available
+    if (directUrl && !directUrl.includes('localhost') && !directUrl.includes('127.0.0.1')) {
         try {
             const pool = new pg.Pool({ connectionString: directUrl });
             const adapter = new PrismaPg(pool);
@@ -18,13 +19,11 @@ function createPrismaClient() {
         }
     }
 
-    // Default to DATABASE_URL if provided, otherwise empty config for build safety
+    // Default to standard initialization
     const config: any = {};
     if (dbUrl) {
         if (dbUrl.includes('prisma://') || dbUrl.includes('prisma+postgres://')) {
             config.accelerateUrl = dbUrl;
-        } else {
-            config.datasources = { db: { url: dbUrl } };
         }
     }
 
