@@ -41,7 +41,7 @@ function createPrismaClient() {
                         url: dbUrl,
                     },
                 },
-            });
+            } as any);
             return client.$extends(withAccelerate());
         } else {
             console.log('PRISMA_DEBUG: Initializing standard Prisma Client');
@@ -51,7 +51,7 @@ function createPrismaClient() {
                         url: dbUrl,
                     },
                 },
-            });
+            } as any);
         }
     } catch (error) {
         console.error('PRISMA_DEBUG: Error constructing Prisma Client:', error);
